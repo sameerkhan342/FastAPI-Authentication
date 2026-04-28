@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JWT Authentication</title>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #5a67d8;
+        }
+        
+        button.logout {
+            background: #e53e3e;
+        }
+        
+        button.logout:hover {
+            background: #c53030;
+        }
+        
+        button.home {
+            background: #48bb78;
+        }
+        
+        button.home:hover {
+            background: #38a169;
+        }
+        
+        .message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        
+        .info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+        
+        .home-message {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <h2>📝 Register</h2>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="regEmail" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="regPassword" placeholder="Enter your password">
+            </div>
+            <button onclick="register()">Register</button>
+            <div id="registerMessage"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔐 Login</h2>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password">
+            </div>
+            <div class="button-group">
+                <button onclick="login()">Login</button>
+                <button onclick="logout()" class="logout">Logout</button>
+            </div>
+            <div id="loginMessage"></div>
+        </div>
+
+        <div class="button-group">
+            <button onclick="getHome()" class="home">🏠 Go to Home</button>
+        </div>
+
+        <div id="homeMessage" class="home-message"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = "http://127.0.0.1:8000";
+
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => {
+                if (element.innerHTML.includes(message)) {
+                    element.innerHTML = "";
+                }
+            }, 5000);
+        }
+
+        async function register() {
+            const email = document.getElementById("regEmail").value;
+            const password = document.getElementById("regPassword").value;
+
+            if (!email || !password) {
+                showMessage("registerMessage", "Please fill in all fields", "error");
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showMessage("registerMessage", "Please enter a valid email address", "error");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage("registerMessage", "Registration successful! Please login.", "success");
+                    document.getElementById("regEmail").value = "";
+                    document.getElementById("regPassword").value = "";
+                } else {
+                    const errorMessage = data.detail || "Registration failed";
+                    showMessage("registerMessage", errorMessage, "error");
+                }
+            } catch (error) {
+                showMessage("registerMessage", `Connection error: Make sure the backend is running on ${API_BASE_URL}`, "error");
+                console.error("Register error:", error);
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+
+            if (!email || !password) {
+                showMessage("loginMessage", "Please fill in all fields", "error");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem("access_token", data.access_token);
+                    showMessage("loginMessage", "Login successful! Welcome back.", "success");
+                    document.getElementById("loginEmail").value = "";
+                    document.getElementById("loginPassword").value = "";
+                    document.getElementById("homeMessage").innerHTML = "";
+                } else {
+                    const errorMessage = data.detail || "Invalid credentials";
+                    showMessage("loginMessage", errorMessage, "error");
+                }
+            } catch (error) {
+                showMessage("loginMessage", `Connection error: Make sure the backend is running on ${API_BASE_URL}`, "error");
+                console.error("Login error:", error);
+            }
+        }
+
+        async function getHome() {
+            const token = localStorage.getItem("access_token");
+            const homeMessageDiv = document.getElementById("homeMessage");
+
+            if (!token) {
+                homeMessageDiv.innerHTML = '<div class="message error">Please login first to access this page</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/home`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    homeMessageDiv.innerHTML = `<div class="message success">${data.message}</div>`;
+                } else if (response.status === 401) {
+                    localStorage.removeItem("access_token");
+                    homeMessageDiv.innerHTML = '<div class="message error">Session expired. Please login again.</div>';
+                    showMessage("loginMessage", "Your session has expired. Please login again.", "error");
+                } else {
+                    const errorMessage = data.detail || "Failed to load home page";
+                    homeMessageDiv.innerHTML = `<div class="message error">${errorMessage}</div>`;
+                }
+            } catch (error) {
+                homeMessageDiv.innerHTML = `<div class="message error">Connection error: ${error.message}</div>`;
+                console.error("Home error:", error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("access_token");
+            document.getElementById("homeMessage").innerHTML = "";
+            showMessage("loginMessage", "Logged out successfully", "success");
+            document.getElementById("loginEmail").value = "";
+            document.getElementById("loginPassword").value = "";
+        }
+
+        window.addEventListener("load", () => {
+            const token = localStorage.getItem("access_token");
+            if (token) {
+                console.log("User is logged in");
+            }
+        });
+    </script>
+</body>
+</html>
